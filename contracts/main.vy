@@ -21,8 +21,6 @@ def __init__(_weth: address):
 
 # state:
 
-paid: public(HashMap[address, HashMap[ERC20, uint256]])
-charged: public(HashMap[address, HashMap[ERC20, uint256]])
 pendingRefund: public(HashMap[address, HashMap[ERC20, uint256]])
 
 # admin actions:
@@ -36,11 +34,6 @@ event SetToken:
   accepted: indexed(bool)
 
 event Withdraw:
-  token: indexed(ERC20)
-  amount: indexed(uint256)
-
-event Charge:
-  user: indexed(address)
   token: indexed(ERC20)
   amount: indexed(uint256)
 
@@ -68,12 +61,6 @@ def withdraw(_token: ERC20, _amount: uint256):
   log Withdraw(_token, _amount)
 
 @external
-def charge(_user: address, _token: ERC20, _amount: uint256):
-  assert msg.sender == self.admin, "auth"
-  self.charged[_user][_token] += _amount
-  log Charge(_user, _token, _amount)
-
-@external
 def refund(_user: address, _token: ERC20, _amount: uint256):
   assert msg.sender == self.admin, "auth"
   self.pendingRefund[_user][_token] += _amount
@@ -95,14 +82,12 @@ event ClaimRefund:
 def payToken(_token: ERC20, _amount: uint256):
   assert self.acceptedTokens[_token], "token"
   assert _token.transferFrom(msg.sender, self, _amount), "tfr"
-  self.paid[msg.sender][_token] += _amount
   log Pay(msg.sender, _token, _amount)
 
 @external
 @payable
 def payEther():
   weth.deposit(value = msg.value)
-  self.paid[msg.sender][ERC20(weth.address)] += msg.value
   log Pay(msg.sender, ERC20(weth.address), msg.value)
 
 @external
